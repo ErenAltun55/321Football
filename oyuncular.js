@@ -75,4 +75,5 @@ module.exports = [
   { isim: "Claude Makélélé", takimlar: ["Real Madrid", "Chelsea", "PSG"] },
   { isim: "Pierre-Emerick Aubameyang", takimlar: ["Milan", "Arsenal", "Barcelona", "Chelsea"] },
   { isim: "Ashley Cole", takimlar: ["Arsenal", "Chelsea"] }
+  { isim: "Leroy Sane", takimlar: ["Manchester City", "Bayern Münih","Galatasaray"] },
 ];
