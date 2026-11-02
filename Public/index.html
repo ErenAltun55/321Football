@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3 2 1 Futbol</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #0b3d1e; color: white;
+           text-align: center; padding-top: 40px; }
+    button { font-size: 22px; padding: 12px 30px; cursor: pointer; }
+    #durum { font-size: 22px; margin: 20px; min-height: 28px; }
+    #sayac { font-size: 90px; font-weight: bold; min-height: 100px; }
+    #oyunAlani { display: none; }
+    #skor { font-size: 32px; font-weight: bold; margin-bottom: 10px; }
+    .takimlar { display: flex; justify-content: center; gap: 40px; margin: 30px; flex-wrap: wrap; }
+    .takim { width: 200px; height: 110px; border: 2px dashed white; font-size: 24px;
+             display: flex; align-items: center; justify-content: center; }
+    input { font-size: 20px; padding: 10px; width: 260px; }
+    #mesaj { font-size: 22px; margin: 20px; min-height: 28px; }
+    #yenidenBtn { display: none; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <h1>3 2 1 Futbol</h1>
+
+  <button id="araBtn">Maç Bul</button>
+  <div id="durum"></div>
+  <div id="sayac"></div>
+
+  <div id="oyunAlani">
+    <div id="skor">Sen 0 - 0 Rakip</div>
+    <div class="takimlar">
+      <div class="takim" id="takim1">?</div>
+      <div class="takim" id="takim2">?</div>
+    </div>
+    <input id="oyuncuInput" placeholder="Futbolcu adı yaz..." autocomplete="off">
+    <button id="gonderBtn">Gönder</button>
+    <div id="mesaj"></div>
+  </div>
+
+  <button id="yenidenBtn">Yeni Maç</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const $ = (id) => document.getElementById(id);
+    const araBtn = $("araBtn"), durum = $("durum"), sayac = $("sayac");
+    const oyunAlani = $("oyunAlani"), skor = $("skor");
+    const takim1 = $("takim1"), takim2 = $("takim2");
+    const input = $("oyuncuInput"), gonderBtn = $("gonderBtn");
+    const mesaj = $("mesaj"), yenidenBtn = $("yenidenBtn");
+
+    function girisAc(acik) {
+      input.disabled = !acik;
+      gonderBtn.disabled = !acik;
+      if (acik) { input.value = ""; input.focus(); }
+    }
+
+    function gonder() {
+      const v = input.value.trim();
+      if (!v) return;
+      socket.emit("guess", v);
+      input.value = "";
+    }
+
+    araBtn.onclick = () => {
+      socket.emit("findMatch");
+      araBtn.style.display = "none";
+    };
+    gonderBtn.onclick = gonder;
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") gonder(); });
+    yenidenBtn.onclick = () => location.reload();
+
+    socket.on("waiting", () => { durum.textContent = "Rakip aranıyor..."; });
+
+    socket.on("matchFound", () => {
+      durum.textContent = "Rakip bulundu!";
+      oyunAlani.style.display = "block";
+      girisAc(false);
+    });
+
+    socket.on("score", (s) => {
+      skor.textContent = "Sen " + s.sen + " - " + s.rakip + " Rakip";
+    });
+
+    socket.on("countdown", (n) => {
+      sayac.textContent = n;
+      durum.textContent = "";
+      mesaj.textContent = "";
+      takim1.textContent = "?";
+      takim2.textContent = "?";
+      girisAc(false);
+    });
+
+    socket.on("roundStart", (t) => {
+      sayac.textContent = "";
+      durum.textContent = "Başla!";
+      takim1.textContent = t.takim1;
+      takim2.textContent = t.takim2;
+      girisAc(true);
+    });
+
+    socket.on("wrong", () => { mesaj.textContent = "Yanlış, tekrar dene!"; });
+
+    socket.on("roundWon", (d) => {
+      girisAc(false);
+      mesaj.textContent = (d.kazanan === socket.id
+        ? "Doğru! Puan senin: "
+        : "Rakip puan aldı: ") + d.oyuncu;
+    });
+
+    socket.on("roundTimeout", () => {
+      girisAc(false);
+      mesaj.textContent = "Süre doldu, kimse bulamadı.";
+    });
+
+    socket.on("gameOver", (d) => {
+      durum.textContent = d.kazanan === socket.id ? "Kazandın!" : "Kaybettin.";
+      yenidenBtn.style.display = "inline-block";
+    });
+
+    socket.on("opponentLeft", () => {
+      girisAc(false);
+      durum.textContent = "Rakip oyundan ayrıldı.";
+      yenidenBtn.style.display = "inline-block";
+    });
+  </script>
+</body>
+</html>   
